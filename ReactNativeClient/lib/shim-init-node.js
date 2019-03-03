@@ -5,6 +5,7 @@ const { FileApiDriverLocal } = require('lib/file-api-driver-local.js');
 const { time } = require('lib/time-utils.js');
 const { setLocale, defaultLocale, closestSupportedLocale } = require('lib/locale.js');
 const { FsDriverNode } = require('lib/fs-driver-node.js');
+const { basename } = require('lib/path-utils.js');
 const mimeUtils = require('lib/mime-utils.js').mime;
 const Note = require('lib/models/Note.js');
 const Resource = require('lib/models/Resource.js');
@@ -154,8 +155,12 @@ function shimInit() {
 		return await Resource.save(resource, { isNew: true });
 	}
 
-	shim.attachFileToNote = async function(note, filePath, position = null) {
-		const resource = await shim.createResourceFromPath(filePath);
+	shim.attachFileToNote = async function(note, filePath, position = null, createFileURL) {
+
+		let resource = [];
+		if (createFileURL == false) {
+			resource = await shim.createResourceFromPath(filePath);
+		}
 
 		const newBody = [];
 
@@ -164,7 +169,15 @@ function shimInit() {
 		}
 
 		if (note.body && position) newBody.push(note.body.substr(0, position));
-		newBody.push(Resource.markdownTag(resource));
+		if (createFileURL == false) {
+			newBody.push(Resource.markdownTag(resource));
+		} else {
+			let filePathEncode = (filePath+'').replace(/\+/g, '%2B'); // escape '+' with unicode
+			filePathEncode = (filePathEncode+'').replace(/ /g, '+'); // escape ' ' with '+'. To comply with syntax used by joplin, see urldecode_(str) in MdToHtml.js
+			filePathEncode = (filePathEncode+'').replace(/\'/g, '%27'); // escape '(single quote) with unicode
+			let fileURL = "[" + basename(filePath) + "](file://" + (filePathEncode) +")" // encodeURIComponent
+			newBody.push(fileURL);
+		}
 		if (note.body) newBody.push(note.body.substr(position));
 
 		const newNote = Object.assign({}, note, {

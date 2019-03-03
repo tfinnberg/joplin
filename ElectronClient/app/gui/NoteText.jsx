@@ -167,6 +167,7 @@ class NoteTextComponent extends React.Component {
 
 		this.onDrop_ = async (event) => {
 			const dt = event.dataTransfer;
+			const createFileURL = event.altKey;
 
 			if (dt.types.indexOf("text/x-jop-note-ids") >= 0) {
 				const noteIds = JSON.parse(dt.getData("text/x-jop-note-ids"));
@@ -190,7 +191,7 @@ class NoteTextComponent extends React.Component {
 				filesToAttach.push(file.path);
 			}
 
-			await this.commandAttachFile(filesToAttach);
+			await this.commandAttachFile(filesToAttach, createFileURL);
 		}
 
 		const updateSelectionRange = () => {
@@ -1019,7 +1020,7 @@ class NoteTextComponent extends React.Component {
 		});
 	}
 
-	async commandAttachFile(filePaths = null) {
+	async commandAttachFile(filePaths = null, createFileURL = false) {
 		if (!filePaths) {
 			filePaths = bridge().showOpenDialog({
 				properties: ['openFile', 'createDirectory', 'multiSelections'],
@@ -1036,7 +1037,7 @@ class NoteTextComponent extends React.Component {
 			const filePath = filePaths[i];
 			try {
 				reg.logger().info('Attaching ' + filePath);
-				note = await shim.attachFileToNote(note, filePath, position);
+				note = await shim.attachFileToNote(note, filePath, position, createFileURL);
 				reg.logger().info('File was attached.');
 				this.setState({
 					note: Object.assign({}, note),
