@@ -635,7 +635,8 @@ class NoteTextComponent extends React.Component {
 		const args = event.args;
 		const arg0 = args && args.length >= 1 ? args[0] : null;
 		const arg1 = args && args.length >= 2 ? args[1] : null;
-
+		const platform = process.platform;
+		
 		reg.logger().debug('Got ipc-message: ' + msg, args);
 
 		if (msg.indexOf('checkboxclick:') === 0) {
@@ -723,7 +724,12 @@ class NoteTextComponent extends React.Component {
 		} else if (urlUtils.urlProtocol(msg)) {
 			if (msg.indexOf('file://') === 0) {
 				// When using the file:// protocol, openExternal doesn't work (does nothing) with URL-encoded paths
-				require('electron').shell.openExternal(urlDecode(msg));
+				if (platform == 'win32') {
+					require('electron').shell.openExternal(urlDecode(msg));
+				} else {
+					require('electron').shell.openExternal(msg.replace(/\+/g, '%20'));
+				}					
+				// this syntax works: require('electron').shell.openExternal("file:///home/tfinnberg/Documents/%C3%A4hem%20%5C(und%20du?).md");
 			} else {
 				require('electron').shell.openExternal(msg);
 			}
